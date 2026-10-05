@@ -1,5 +1,6 @@
 *
-!requirements.lock
+!pyproject.toml
+!uv.lock
 !inspect_source.py
 !ingest.py
 !ingest_months.py

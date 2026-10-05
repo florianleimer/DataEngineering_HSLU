@@ -43,7 +43,7 @@ References: [PostgreSQL image](https://hub.docker.com/_/postgres), [pgAdmin cont
 
 `ingest` is the Python service defined in `compose.yaml`. Its `build: .` setting tells Docker to use the `Dockerfile` in this directory.
 
-The command prepares a Docker **image** by starting with Python, installing the libraries listed in `requirements.lock`, and copying our Python scripts and SQL files into that image. It does not run the loader, start PostgreSQL, or load any records.
+The command prepares a Docker **image** by starting with Python, installing the libraries pinned in `uv.lock` with `uv sync`, and copying our Python scripts and SQL files into that image. It does not run the loader, start PostgreSQL, or load any records.
 
 After the image is built successfully, `docker compose run --rm ingest ingest.py data/yellow_tripdata_2024-01.parquet` creates a container from it and runs the Python loader. Rebuild after editing the scripts so the image contains your changes.
 
