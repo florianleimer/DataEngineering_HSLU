@@ -16,20 +16,7 @@ flowchart LR
 
 The source records stay in place. SQL views provide different ways to query them. A **view** is a saved query: PostgreSQL runs its query when you read the view. It does not store a separate copy of the results.
 
-## Session route
 
-Allow about two hours, with extra time if SQL joins and grouping are new.
-
-| Activity | Time | Connection to HS26 SW3 slides* |
-|---|---|---|
-| Explain the existing ingestion design | 10 min | 3–10: ingestion decisions and CDC |
-| Inspect data quality | 20 min | 11–12: make ingested data usable |
-| Derive fields and join zone names | 30 min | 12–13: transformations and business rules |
-| Build and check a daily report | 20 min | 14–16: consumer and serving |
-| Tokenize fictional customer identifiers | 25 min | 21–22: security and least privilege |
-| Apply the decisions to your project | 15 min | 20: project architecture |
-
-*Page numbers refer to the 22-page `1_Foundation and Building Blocks_W3.pdf`. The slide file is labelled SW3; this practical takes place in Week 4, after Week 3's project presentations.
 
 ## 1. Explain what you already built
 
@@ -53,18 +40,7 @@ Follow these in order:
 
 Use your existing PostgreSQL, pgAdmin, and Python image. No cloud account or new service is required. The report uses `public.taxi_trips_monthly`, loaded in Week 2 Part 3, Step 7. Finish loading at least one month before starting; you can also work with the full year of 2024.
 
-## 3. Apply the decisions to your project
 
-With your project partner, write down:
-
-- **Consumer:** who uses the result, and for what decision?
-- **Changes:** three concrete transformations your source needs.
-- **Rule:** one definition of a valid record or a metric, with an example.
-- **Placement:** what happens before loading, and what happens after loading?
-- **Cadence:** how fresh must the result be, and can the source provide that freshness?
-- **Access:** which fields should the consumer see, and which should be restricted?
-
-Update your pipeline diagram and explain one trade-off. For example, keeping source records helps you investigate and rebuild a report, but access to sensitive source fields must be restricted.
 
 ## Finish with
 
