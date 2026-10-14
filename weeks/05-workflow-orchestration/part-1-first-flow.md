@@ -50,7 +50,7 @@ YAML uses indentation to group settings. Preserve the spaces when copying the fi
 **Two rules about IDs:**
 
 1. **IDs must be unique within their scope.** A flow ID must be unique within its namespace: `deng.week5` can contain only one flow named `taxi_intro`, but another namespace can use the same name. Task IDs must be unique within a flow. Running a flow again does not require changing either ID; Kestra generates a separate execution ID for each run.
-2. **Saving a flow establishes its identity.** The combination of namespace and flow ID identifies the saved flow, even before its first execution. You can later edit its tasks, inputs, and messages, but to use a different flow ID, copy the YAML into a new flow and change the ID before saving. The original flow keeps its execution history; the new flow has its own history.
+2. **The namespace and flow ID form the flow's identity.** You will investigate what this means after creating and executing the flow.
 
 ## 2. Create the flow in Kestra
 
@@ -85,14 +85,11 @@ Selected taxi data: year=2024, month=2
 
 Open the execution history and compare both runs. You have one workflow definition and two separate executions, each with its own inputs and log.
 
-## 5. Check an invalid input
+## 5. Exercise: can you change a saved flow's ID?
+
+You now have one saved flow called `taxi_intro` and two executions in its history. Test what Kestra does when you try to give that saved flow a different identity.
+
+
+## 6. Check an invalid input
 
 Try entering `month = 13`. Check whether Kestra prevents submission or adjusts the value to `12`. If an execution starts, inspect its inputs to see which month was actually submitted. The permitted range is 1–12.
-
-**Discuss:**
-
-1. What is the difference between saving a flow and executing it?
-2. Why can one flow process different months without editing its code?
-3. Does a successful logging task prove the taxi records exist in PostgreSQL? Explain.
-
-**Finish with:** one saved flow, two successful executions with different month values, and the log message from each. Next, follow [Run a small Python task](part-2-python.md).
