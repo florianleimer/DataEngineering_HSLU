@@ -30,7 +30,4 @@ tasks:
       POSTGRES_PASSWORD: "{{ envs.taxi_password }}"
     commands:
       - cd /app
-      # TODO: Replace the two lines below with ONE Python command.
-      # Run ingest_months.py and pass the flow's year and month inputs.
-      - echo "Complete the ingestion command before running this flow."
-      - exit 1
+      - python ingest_months.py --year {{ inputs.year }} --months {{ inputs.month }}

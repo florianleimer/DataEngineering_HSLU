@@ -30,6 +30,4 @@ tasks:
       POSTGRES_PASSWORD: "{{ envs.taxi_password }}"
     commands:
       - cd /app
-      # TODO: run etl_month.py with the selected inputs.
-      - echo "Complete the ETL command."
-      - exit 1
+      - python etl_month.py --year {{ inputs.year }} --month {{ inputs.month }}
