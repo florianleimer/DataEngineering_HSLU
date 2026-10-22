@@ -13,15 +13,14 @@ tasks:
       volumes:
         - "{{ envs.taxi_data_dir }}:/app/data"
     retry:
-      # TODO: choose a retry strategy.
-      # TODO: choose the wait time between attempts.
-      # TODO: choose the maximum number of attempts.
       type: constant
       interval: PT5S
-      maxAttempts: 1
+      maxAttempts: 2
     commands:
       - |
-        # TODO: invent a temporary condition that makes attempt 1 fail but
-        # allows a later attempt to succeed without editing this flow.
-        echo "Complete the temporary-failure exercise."
-        exit 1
+        if [ ! -f /app/data/retried ]; then
+          echo '/app/data/retried is missing because this was never executed'
+          touch /app/data/retried
+          exit 1
+        fi
+        echo 'Retry succeeded, /app/data/retried exists'
