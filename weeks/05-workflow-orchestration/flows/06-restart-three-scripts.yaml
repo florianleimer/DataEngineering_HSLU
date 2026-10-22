@@ -11,6 +11,9 @@ inputs:
     min: 1
     max: 12
 
+# Each task runs in its own temporary working directory. Files listed in
+# outputFiles are saved in Kestra's internal storage; the next task receives
+# them again through inputFiles. No shared data directory is needed.
 tasks:
   - id: extract
     type: io.kestra.plugin.scripts.shell.Commands
@@ -20,10 +23,10 @@ tasks:
       pullPolicy: NEVER
       networkMode: "{{ envs.taxi_network }}"
       entryPoint: []
-      volumes:
-        - "{{ envs.taxi_data_dir }}:/app/data"
     commands:
-      - python /app/extract_month.py --year {{ inputs.year }} --month {{ inputs.month }}
+      - python /app/extract_month.py --year {{ inputs.year }} --month {{ inputs.month }} --output source.parquet
+    outputFiles:
+      - source.parquet
 
   - id: transform
     type: io.kestra.plugin.scripts.shell.Commands
@@ -33,10 +36,12 @@ tasks:
       pullPolicy: NEVER
       networkMode: "{{ envs.taxi_network }}"
       entryPoint: []
-      volumes:
-        - "{{ envs.taxi_data_dir }}:/app/data"
+    inputFiles:
+      source.parquet: "{{ outputs.extract.outputFiles['source.parquet'] }}"
     commands:
-      - python /app/transform_month.py
+      - python /app/transform_month.py --input source.parquet --output transformed.csv
+    outputFiles:
+      - transformed.csv
 
   - id: load
     type: io.kestra.plugin.scripts.shell.Commands
@@ -46,8 +51,11 @@ tasks:
       pullPolicy: NEVER
       networkMode: "{{ envs.taxi_network }}"
       entryPoint: []
+      # Only the practice marker is read from the host.
       volumes:
         - "{{ envs.taxi_data_dir }}:/app/data:ro"
+    inputFiles:
+      transformed.csv: "{{ outputs.transform.outputFiles['transformed.csv'] }}"
     env:
       POSTGRES_HOST: postgres
       POSTGRES_DB: "{{ envs.taxi_db }}"
@@ -56,8 +64,10 @@ tasks:
     commands:
       - >-
         test -f /app/data/load_ready || (echo 'Practice failure: create data/load_ready, then restart this execution.'; exit 1)
-      - python /app/load_month.py --year {{ inputs.year }} --month {{ inputs.month }}
+      - python /app/load_month.py --year {{ inputs.year }} --month {{ inputs.month }} --input transformed.csv
 
 # Correction after the failed run: create the marker file locally, without
 # editing this flow, then use Restart on the same failed execution:
 #   touch data/load_ready
+# On Restart, Load receives transformed.csv from the outputs that Transform
+# stored in the original execution.
