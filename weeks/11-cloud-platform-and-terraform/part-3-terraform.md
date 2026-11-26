@@ -8,7 +8,7 @@ Create a **Cloud Storage bucket** and a **BigQuery dataset** from a Terraform co
 
 Terraform prepares the infrastructure. Downloading taxi files, uploading them and loading tables are later pipeline tasks coordinated by Kestra. At the end of this exercise, the bucket and dataset will be empty.
 
-Complete [Part 2](part-2-google-cloud-setup.md) first: your project must have billing, the required APIs and a service account with Storage Admin and BigQuery Admin roles. Set `GOOGLE_APPLICATION_CREDENTIALS` to that service account's downloaded JSON key in the terminal you use here. Terraform acts as this service account, not your personal CLI account. Creating a separate pipeline identity with permissions for its data tasks is a later exercise.
+Complete [Part 2](part-2-google-cloud-setup.md) first: your project must be linked to the course coupon’s billing account, have all four APIs from Part 2 section 5 enabled, and have a service account with Storage Admin and BigQuery Admin roles. Set `GOOGLE_APPLICATION_CREDENTIALS` to that service account's downloaded JSON key in the terminal you use here. Terraform acts as this service account, not the student account signed in to the Console. Creating a separate pipeline identity with permissions for its data tasks is a later exercise.
 
 ## 1. Open the starter and check your tools
 
@@ -17,7 +17,6 @@ From the **repository root**, run:
 ```sh
 cd weeks/11-cloud-platform-and-terraform/terraform
 terraform version
-gcloud config get-value project
 ```
 
 Keep this terminal in the `terraform` folder for all commands below. Open [terraform/main.tf](terraform/main.tf) in your editor. You can optionally install the **HashiCorp Terraform** VS Code extension for syntax highlighting and completion.
@@ -26,12 +25,14 @@ Terraform CLI runs commands such as `plan` and `apply`. The **Google provider** 
 
 The starter accepts Terraform CLI **1.11.4 or later within version 1.x** and currently specifies Google provider **6.44.0**, with which this configuration passed local validation. This is not a requirement to use versions from previous semesters, nor a claim that this is the latest provider. We specify a provider version so everyone uses the same setup for the exercise.
 
-**Your turn:** Record your project ID. In `main.tf`, replace both `REPLACE_WITH_...` values:
+**Your turn:** Use the project ID you recorded in Part 2. In `main.tf`, replace the existing values for these two settings:
 
-- `project`: your actual project ID from Part 2.
-- `name`: a globally unique bucket name, for example your project ID followed by `-taxi-raw`. Use lowercase letters, digits and hyphens for this exercise.
+- `project` in the `provider "google"` block: your actual project ID from Part 2.
+- `name` in the `google_storage_bucket` block: a globally unique bucket name, for example your project ID followed by `-taxi-raw`. Use lowercase letters, digits and hyphens for this exercise.
 
-Save `main.tf`. No credentials need to be pasted into it. The provider finds the service-account JSON key through `GOOGLE_APPLICATION_CREDENTIALS`. If you opened a new terminal, repeat the environment-variable command from Part 2. The provider's `project` setting explicitly selects where resources are created; changing the CLI's default project does not change this value.
+The checked-in values `dengtaxi` and `forooz-dengtaxi-taxi-raw` are instructor examples; replace them with your own project ID and bucket name.
+
+Save `main.tf`. No credentials need to be pasted into it. The provider finds the service-account JSON key through `GOOGLE_APPLICATION_CREDENTIALS`. If you opened a new terminal, repeat the environment-variable command from Part 2. The provider's `project` setting explicitly selects where resources are created; selecting a different project in the browser Console does not change this value.
 
 ## 2. Read the configuration before running it
 
@@ -60,7 +61,7 @@ These are explanatory snippets, not extra blocks to add to the starter. Keep you
 
 If you explicitly set `project` inside the bucket resource, it overrides the provider's project **for that bucket**. The service account still needs permission in the selected project. The BigQuery dataset can also inherit the provider project.
 
-Here, “provider project” refers to the Terraform configuration, **not** the default project selected by `gcloud config set project`.
+Here, “provider project” refers to the Terraform configuration, **not** the project currently selected in the browser Console.
 
 ### Understand the starter settings
 
@@ -201,7 +202,37 @@ Terraform's local state connects the resource names in your code to the resource
 **Discuss:** Why does running Terraform again not create a second bucket? Would a newly created folder containing only a copy of `main.tf` automatically have the same state?
 
 
-## 7. Remove the exercise resources
+## 7. What happens if the state file is deleted?
+
+**Deleting `terraform.tfstate` does not delete your bucket or dataset.** In this exercise, Terraform stores its state locally. That file records the connection between the resources in `main.tf` and the resources already created in Google Cloud.
+
+Consider this example:
+
+1. You run `terraform apply`. Terraform creates the bucket and dataset and records them in `terraform.tfstate`.
+2. You delete the state file, but leave `main.tf` unchanged. The resources still exist in Google Cloud.
+3. You run `terraform plan`. Without the previous state, Terraform treats the configured resources as new and proposes creating them again.
+4. If you apply that plan with the same bucket name and dataset ID, creation will typically fail because those resources already exist. Terraform does not automatically adopt an existing resource just because its name matches the configuration.
+
+| What remains? | After deleting the local state file |
+|---|---|
+| `main.tf` | Still describes the resources you want. |
+| Bucket and dataset in Google Cloud | Still exist, including any data they contain. |
+| Terraform's record of managing those resources | Lost unless you recover it. |
+
+**What about `terraform destroy`?** Without the state entries, Terraform cannot identify those existing resources as ones it manages. Running `destroy` does not discover and delete them from the project. They remain in Google Cloud, and any billable storage or usage can continue.
+
+### How would we recover?
+
+Do not change the resource names or repeatedly run `apply` to work around the error. Ask the instructor to help recover the connection:
+
+- **Restore a valid state backup**, if available. A local `terraform.tfstate.backup` may exist, but it can represent an earlier state; check that it matches the resources before using it. Review the next plan before applying anything.
+- **Import the existing resources** if no suitable backup is available. `terraform import` associates each existing cloud resource with its resource address in your configuration, such as `google_storage_bucket.raw_taxi`. Import does not create another bucket. The configuration must then be checked against the imported resource using `terraform plan`.
+
+Recovery is an explanation, not a deletion exercise: **keep your state file intact**. Use `terraform destroy` in the next section when you actually want to remove the cloud resources.
+
+**Remember:** `main.tf` describes what you want; `terraform.tfstate` records what Terraform manages. Neither file is a backup of the taxi data. `.terraform.lock.hcl` is different again: it records provider versions and checksums, not your cloud resources.
+
+## 8. Remove the exercise resources
 
 Finish the exercise by deleting the empty bucket and dataset using Terraform. Use the **same `terraform` directory and state** as before, with the service-account key still configured in your terminal.
 
@@ -236,7 +267,7 @@ The state list should be empty. Because `main.tf` still describes the two resour
 
 Our bucket uses `force_destroy = false`. If you uploaded objects, Terraform will refuse to delete the nonempty bucket. Check its contents before removing any exercise files; do not change that setting just to bypass the error. This practical expects an empty bucket and an empty dataset.
 
-Next: [Part 4 — Make the configuration reusable with variables](part-4-terraform-variables.md).
+Next: [Part 4 — Make the configuration reusable with variables](part-4-terraform-variables.md), or continue directly to [Part 5 — Upload a taxi file with Kestra](part-5-kestra-to-cloud-storage.md). Both are optional extensions.
 
 ## If something fails
 
@@ -244,11 +275,11 @@ Next: [Part 4 — Make the configuration reusable with variables](part-4-terrafo
 |---|---|
 | `terraform` is not found | Return to the installation steps in the [preparation](../../preparation/week-11.md). |
 | No configuration files found | Run commands from the `terraform` directory containing `main.tf`. |
-| Missing credentials | Set `GOOGLE_APPLICATION_CREDENTIALS` in this terminal and check that its JSON key file exists. `gcloud auth login` alone is not sufficient. |
+| Missing credentials | Set `GOOGLE_APPLICATION_CREDENTIALS` in this terminal and check that its JSON key file exists. Signing in to the Console does not supply Terraform with credentials. |
 | Wrong credentials | Check that the key belongs to the intended service account and that an old `GOOGLE_CREDENTIALS` setting or explicit provider `credentials` value is not overriding this setup. See Part 2. |
 | Permission denied | Check the service account's project roles with the instructor. A valid key authenticates the account but does not grant permissions. |
-| Bucket name already exists | Choose a different globally unique name and inspect the new plan. |
-| Billing or API error | Recheck the project setup in Part 2. |
+| Bucket name already exists | For a new bucket, choose a globally unique name. If this is a bucket you previously created with Terraform, check that you are using the original directory and state; see section 7 before changing its name. |
+| Billing or API error | Check the coupon billing link in Part 2 section 3 and the enabled APIs in section 5. Confirm they belong to the project set in `main.tf`. |
 | One resource succeeds and the other fails | Correct the reported issue and rerun `plan`; retain the state so Terraform can track the successful resource. |
 
 References: [Google provider](https://registry.terraform.io/providers/hashicorp/google/6.44.0/docs) · [Bucket resource](https://registry.terraform.io/providers/hashicorp/google/6.44.0/docs/resources/storage_bucket) · [Terraform initialization](https://developer.hashicorp.com/terraform/cli/commands/init) · [Google authentication](https://docs.cloud.google.com/docs/terraform/authentication).
